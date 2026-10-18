@@ -112,6 +112,16 @@ _FIXTURE_TEXT_BY_STEM = {
         "Date of birth: 1955-07-02.\n"
         "This change is effective 2025-12-01."
     ),
+    "07_ssa_letter_high_income": (
+        "Social Security Administration\n"
+        "ZHANG WEI\n"
+        "789 SAMPLE BLVD APT 6F, FLUSHING NY 11354\n"
+        "Your monthly benefit amount is $3,150.00.\n"
+        "Medicare Part B premium deduction: $202.90.\n"
+        "Your net payment is $2,947.10.\n"
+        "Date of birth: 1951-05-20.\n"
+        "This change is effective 2025-12-01."
+    ),
 }
 
 _FIXTURE_EXTRACT_BY_STEM = {
@@ -195,6 +205,16 @@ _FIXTURE_EXTRACT_BY_STEM = {
         "recipient_name": "ELENA PETROVA",
         "recipient_address": "456 SAMPLE ST APT 2C, BROOKLYN NY 11223",
         "date_of_birth": "1955-07-02",
+    },
+    # Fixture 7: income over every limit -- the "not likely right now" demo.
+    "07_ssa_letter_high_income": {
+        "gross_monthly_benefit": 3150.00,
+        "part_b_deduction": 202.90,
+        "net_payment": 2947.10,
+        "effective_date": "2025-12-01",
+        "recipient_name": "ZHANG WEI",
+        "recipient_address": "789 SAMPLE BLVD APT 6F, FLUSHING NY 11354",
+        "date_of_birth": "1951-05-20",
     },
 }
 

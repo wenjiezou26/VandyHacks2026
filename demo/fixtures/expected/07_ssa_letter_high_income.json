@@ -1,0 +1,13 @@
+{
+  "letter_type": "ssa_benefit_letter",
+  "gross_monthly_benefit": 3150.0,
+  "part_b_deduction": 202.9,
+  "net_payment": 2947.1,
+  "effective_date": "2025-12-01",
+  "benefit_type": "retirement",
+  "date_of_birth": "1951-05-20",
+  "has_medicare_part_a": true,
+  "has_medicare_part_b": true,
+  "recipient_name": "ZHANG WEI",
+  "recipient_address": "789 SAMPLE BLVD APT 6F, FLUSHING NY 11354"
+}

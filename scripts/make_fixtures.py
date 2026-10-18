@@ -577,14 +577,84 @@ def make_fixture_5() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Fixture 7 -- Income too high: a "not likely right now" result
+# ---------------------------------------------------------------------------
+
+
+def make_fixture_7() -> None:
+    """Same layout as fixture 5, but $3,150/month: over the QI limit, the
+    Extra Help limit and (living alone) SNAP's -- so the demo can show
+    what "not likely right now" looks like."""
+    name = "07_ssa_letter_high_income"
+    l = Letter()
+    l.barcode_strip()
+    l.letterhead(
+        "SSA",
+        (0, 90, 60),
+        ["Social Security Administration", "Benefit Verification Letter"],
+        ["Date: October 1, 2026", "BNC#: SAMPLE-26X0007"],
+    )
+    l.address_block(["ZHANG WEI", "789 SAMPLE BLVD APT 6F", "FLUSHING NY 11354"])
+    l.body(
+        [
+            "You asked us for information from your record. The information",
+            "below is what you requested.",
+        ]
+    )
+    l.section_header("Information About Current Social Security Benefits")
+    l.box(
+        [
+            ("Full monthly Social Security benefit before deductions", "$3,150.00"),
+            ("Medical insurance (Medicare Part B) premium deduction", "$202.90"),
+            ("Regular monthly Social Security payment", "$2,947.10"),
+            ("Effective", "December 2025"),
+        ]
+    )
+    l.section_header("Type of Social Security Benefit Information")
+    l.body(["You are entitled to monthly retirement benefits.", "Date of birth: May 20, 1951"])
+    l.section_header("Medicare Information")
+    l.body(["You are entitled to hospital and medical insurance under Medicare."])
+    l.body(["Social Security Number: XXX-XX-0000 (SAMPLE)"], font_size=17, color=MUTED)
+    l.finish(name)
+
+    _write_expected(
+        name,
+        {
+            "letter_type": "ssa_benefit_letter",
+            "gross_monthly_benefit": 3150.00,
+            "part_b_deduction": 202.90,
+            "net_payment": 2947.10,
+            "effective_date": "2025-12-01",
+            "benefit_type": "retirement",
+            "date_of_birth": "1951-05-20",
+            "has_medicare_part_a": True,
+            "has_medicare_part_b": True,
+            "recipient_name": "ZHANG WEI",
+            "recipient_address": "789 SAMPLE BLVD APT 6F, FLUSHING NY 11354",
+        },
+    )
+
+
+FIXTURES = {
+    "1": lambda: make_fixture_1(),
+    "2": lambda: make_fixture_2(),
+    "3": lambda: make_fixture_3(),
+    "4": lambda: make_fixture_4(),
+    "5": lambda: make_fixture_5(),
+    "7": lambda: make_fixture_7(),
+}
+
+
 def main() -> None:
+    """All fixtures, or only the numbers given (python scripts/make_fixtures.py 7)
+    -- regenerating one never rewrites the others' images."""
+    import sys
+
     FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
     EXPECTED_DIR.mkdir(parents=True, exist_ok=True)
-    make_fixture_1()
-    make_fixture_2()
-    make_fixture_3()
-    make_fixture_4()
-    make_fixture_5()
+    for number in sys.argv[1:] or list(FIXTURES):
+        FIXTURES[number]()
 
 
 if __name__ == "__main__":

@@ -195,3 +195,29 @@ def test_snap_likely_from_ssa_letter_and_heap_notice_with_zero_questions():
     assert snap["status"] == "likely"
     assert snap["numbers_used"]["household_gross_monthly_income"] == pytest.approx(1700.00)
     assert snap["numbers_used"]["fpl_200_monthly"] == pytest.approx(2660.00)
+
+
+def test_fixture_7_high_income_is_not_likely_anywhere():
+    """Fixture 7 ($3,150/month, living alone) is the "doesn't qualify"
+    demo: over the QI, Extra Help and SNAP limits. From the letter alone
+    the results are preliminary "not likely"; once the facts that could
+    change them are answered they are confirmed, with nothing left to ask."""
+    headers = auth_headers("zhang_wei")
+    body = _upload("07_ssa_letter_high_income.png", headers, language="en")
+    assert body["extracted_fields"]["gross_monthly_benefit"] == 3150.00
+
+    response = client.get("/benefits", params={"language": "zh"}, headers=headers).json()
+    results = {r["program"]: r for r in response["results"]}
+    assert {r["status"] for r in results.values()} == {"not_now"}
+    assert all(r["preliminary"] for r in results.values())
+    # A spouse or a bigger household raises the limits; more work income
+    # couldn't change a "not likely", so it isn't asked.
+    assert response["questions"] == ["married", "household_size"]
+
+    for key, value in [("married", "no"), ("household_size", "1")]:
+        assert client.post("/profile/answers", json={"key": key, "value": value}, headers=headers).status_code == 200
+    response = client.get("/benefits", params={"language": "zh"}, headers=headers).json()
+    results = {r["program"]: r for r in response["results"]}
+    assert {r["status"] for r in results.values()} == {"not_now"}
+    assert not any(r["preliminary"] for r in results.values())
+    assert response["questions"] == []

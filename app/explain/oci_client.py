@@ -88,7 +88,8 @@ def _real_explain(result: ProgramResult, language: str) -> str:
         f"Explain this benefits result to an older adult reading at a 6th-grade level, in {language_name(language)}, "
         "in 2-4 short sentences of plain text (no markdown). Copy every number, date and dollar amount exactly as given and add no "
         "other numbers; keep official English program names in parentheses. Only state facts that are in the data. "
-        "Status 'likely' means they likely qualify. "
+        "Status 'likely' means they likely qualify. This is a check of their letters, not an application: "
+        "never say they applied, were denied or were approved. "
         + (
             ""
             if result.monthly_value

@@ -45,6 +45,7 @@ FIXTURE_STEMS = [
     "03_hra_snap_recert_notice",
     "04_clinic_bill",
     "05_ssa_letter_variant",
+    "07_ssa_letter_high_income",
 ]
 
 
