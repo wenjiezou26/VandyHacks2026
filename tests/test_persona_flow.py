@@ -171,3 +171,27 @@ def test_fixture_5_variant_is_read_independently_of_fixture_1():
     # English text with an explicit MOCK_MODE note rather than silently
     # mistranslating or inventing Russian numbers.
     assert "MOCK_MODE" in results["QI"]["explanation"]
+
+
+def test_snap_likely_from_ssa_letter_and_heap_notice_with_zero_questions():
+    """Fixture 6 (HEAP notice) gives the same household facts as the SNAP
+    recert notice without saying she's already on SNAP -- so SNAP is
+    evaluated fresh and comes out likely, no questions asked."""
+    headers = auth_headers("meiling_snap")
+    _upload("01_ssa_benefit_letter.png", headers)
+    _upload("02_bank_statement.png", headers)
+    body = _upload("06_hra_heap_notice.png", headers)
+
+    assert body["letter_type"] == "hra_renewal_notice"
+    assert body["reminder"]["program"] == "HEAP"
+    assert body["reminder"]["deadline"] == "2026-12-15"
+    assert "on_snap" not in body["profile_fields_updated"]
+
+    response = client.get("/benefits", params={"language": "zh"}, headers=headers)
+    benefits = response.json()
+    assert benefits["questions"] == []
+
+    snap = {r["program"]: r for r in benefits["results"]}["SNAP"]
+    assert snap["status"] == "likely"
+    assert snap["numbers_used"]["household_gross_monthly_income"] == pytest.approx(1700.00)
+    assert snap["numbers_used"]["fpl_200_monthly"] == pytest.approx(2660.00)

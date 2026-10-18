@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass
 
 from app.i18n import document_name_zh
-from app.number_guard import assert_numbers_preserved
+from app.number_guard import assert_numbers_preserved, format_dollar_amounts
 from app.oci_genai import genai_chat, language_name, oci_config, parse_json_object, plain_text
 from app.trace import call_real_or_sample, call_with_fallback
 
@@ -80,6 +80,20 @@ _FIXTURE_TEXT_BY_STEM = {
         "Please submit: proof of income, proof of rent, proof of utilities, "
         "proof of medical expenses, proof of identity."
     ),
+    "06_hra_heap_notice": (
+        "NYC Human Resources Administration\n"
+        "HEAP: Home Energy Assistance Program\n"
+        "MEI-LING CHEN\n"
+        "Household size: 1\n"
+        "Household Members: MEI-LING CHEN, age 74, Head of Household\n"
+        "Programs on this case: HEAP\n"
+        "Income we used: Social Security only. No one in your household "
+        "has earned income (wages or self-employment).\n"
+        "Renew by 2026-12-15.\n"
+        "This notice is about HEAP only. It is not a decision about food "
+        "benefits or Medicaid.\n"
+        "Please submit: proof of income, proof of identity, proof of utilities."
+    ),
     "04_clinic_bill": (
         "Sample Family Clinic Patient Statement\n"
         "Provider: SAMPLE FAMILY CLINIC\n"
@@ -137,6 +151,18 @@ _FIXTURE_EXTRACT_BY_STEM = {
             "proof of medical expenses",
             "proof of identity",
         ],
+    },
+    # Fixture 6: same household facts as fixture 3, but for HEAP -- so it
+    # never marks her as already on SNAP (see demo/fixtures/SPEC.md).
+    "06_hra_heap_notice": {
+        "program": "HEAP",
+        "deadline": "2026-12-15",
+        "notice_date": "2026-10-05",
+        "household_size": 1,
+        "household_members": [{"name": "MEI-LING CHEN", "age": 74, "relationship": "head_of_household"}],
+        "programs_on_case": ["HEAP"],
+        "household_has_earned_income": False,
+        "required_documents": ["proof of income", "proof of identity", "proof of utilities"],
     },
     "04_clinic_bill": {
         "provider": "SAMPLE FAMILY CLINIC",
@@ -226,7 +252,7 @@ def _mock_classify(raw_text: str) -> LetterType:
         return LetterType.SSA_BENEFIT_LETTER
     if "ending balance" in text:
         return LetterType.BANK_STATEMENT
-    if "recertif" in text or "snap" in text:
+    if "recertif" in text or "snap" in text or "human resources administration" in text:
         return LetterType.HRA_RENEWAL_NOTICE
     if "medicare claim" in text or "provider:" in text:
         return LetterType.MEDICAL_BILL
@@ -407,12 +433,24 @@ def _real_extract(letter_type: LetterType, raw_text: str, key_values: dict, retr
     return parse_json_object(genai_chat(prompt, json_mode=True))
 
 
+def _dollars(value):
+    """Every float in a letter's fields is a dollar amount (see schemas);
+    give the model "$40,000.00", not 40000.0, so it copies that form."""
+    if isinstance(value, float):
+        return f"${value:,.2f}"
+    if isinstance(value, dict):
+        return {k: _dollars(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_dollars(v) for v in value]
+    return value
+
+
 def _real_explain(letter_type: LetterType, fields: dict, language: str) -> str:
-    source_text = json.dumps(fields, ensure_ascii=False)
+    source_text = json.dumps(_dollars(fields), ensure_ascii=False)
     prompt = (
         f"Explain this {letter_type.value.replace('_', ' ')} to an older adult reading at a 6th-grade level, "
         f"in {language_name(language)}, in 2-4 short sentences of plain text (no markdown). Copy every number, date and dollar amount "
-        "exactly as given and add no other numbers; keep official English program names in parentheses. "
+        "exactly as given (write dollar amounts like $1,234.56) and add no other numbers; keep official English program names in parentheses. "
         "Only state facts that are in the data -- don't add dates, reasons or advice that aren't there. "
         f"Data: {source_text}"
     )
@@ -455,7 +493,9 @@ def extract_fields(
 
 def explain_letter(letter_type: LetterType, fields: dict, language: str) -> str:
     """OCI GenAI: plain-language explanation of this letter in the user's language."""
-    return call_with_fallback(
-        lambda: _real_explain(letter_type, fields, language),
-        lambda: _mock_explain(letter_type, fields, language),
+    return format_dollar_amounts(
+        call_with_fallback(
+            lambda: _real_explain(letter_type, fields, language),
+            lambda: _mock_explain(letter_type, fields, language),
+        )
     )

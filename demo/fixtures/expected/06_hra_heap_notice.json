@@ -1,0 +1,23 @@
+{
+  "letter_type": "hra_renewal_notice",
+  "program": "HEAP",
+  "notice_date": "2026-10-05",
+  "deadline": "2026-12-15",
+  "household_size": 1,
+  "household_members": [
+    {
+      "name": "MEI-LING CHEN",
+      "age": 74,
+      "relationship": "head_of_household"
+    }
+  ],
+  "programs_on_case": [
+    "HEAP"
+  ],
+  "household_has_earned_income": false,
+  "required_documents": [
+    "proof_of_income",
+    "proof_of_identity",
+    "proof_of_utilities"
+  ]
+}
