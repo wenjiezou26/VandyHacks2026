@@ -1,14 +1,13 @@
 """OCI Document Understanding + GenAI calls, with an offline MOCK_MODE.
 
-MOCK_MODE=true is the default and the only path exercised by the test
-suite -- zero network calls, fully deterministic. When MOCK_MODE=false,
+MOCK_MODE=true is the default -- zero network calls, fully deterministic.
+The real-mode parsing is tested offline with fake SDK responses
+(tests/test_oci_real_mode.py). When MOCK_MODE=false,
 every call below attempts real OCI first; mock is only ever reached as a
 fallback if that fails (see app.trace.call_with_fallback), and that
 fallback is recorded on the request's trace so the UI can show it was
-used, not hide it. The real-mode functions follow the OCI Python SDK's
-documented shapes but are unverified against a live tenancy -- treat
-them as a skeleton to wire up with real OCI credentials, not a tested
-path.
+used, not hide it. The real-mode functions have been run end to end against the team's
+OCI tenancy with scripts/check_oci.py.
 
 The LLM is only ever asked to classify, extract, or explain -- never to
 decide eligibility. See app/rules/engine.py for the decision logic.
@@ -395,7 +394,7 @@ def _mock_explain(letter_type: LetterType, fields: dict, language: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Real mode: OCI Document Understanding + Generative AI (untested skeleton).
+# Real mode: OCI Document Understanding + Generative AI.
 # ---------------------------------------------------------------------------
 
 

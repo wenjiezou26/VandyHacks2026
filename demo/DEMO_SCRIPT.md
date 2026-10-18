@@ -182,9 +182,10 @@ hardcoded answer."*
   whole file.
 - **"What's still missing?"** → Be honest: SMS delivery for the sign-in
   code, real agency filing, caseworker accounts (one shared key today),
-  and the real-OCI golden test (`tests/test_fixtures_live.py`) is
-  written but has never run against a live tenancy -- no credentials
-  yet. All flagged inline in the code, not hidden.
+  and the per-field real-OCI golden test (`tests/test_fixtures_live.py`)
+  is opt-in (`RUN_LIVE=1`) rather than part of every test run. Real OCI
+  mode itself has been run end to end against the team's tenancy with
+  `scripts/check_oci.py`. All flagged inline in the code, not hidden.
 
 ## Time budget
 

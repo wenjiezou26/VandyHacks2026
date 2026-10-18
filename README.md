@@ -157,11 +157,11 @@ recorded.
 
 Every real-mode call above shares one GenAI chat helper (`app/oci_genai.py`)
 and has a MOCK_MODE path, independently toggled by the `MOCK_MODE` env var,
-so the demo is never blocked by missing credentials or network access. The
-real-mode implementations follow the OCI Python SDK's documented shapes but
-are **unverified against a live tenancy** — treat them as a skeleton, not a
-tested path. `scripts/check_oci.py` (see Testing below) is the fastest
-way to find out which calls actually work once real credentials are set.
+so the demo is never blocked by missing credentials or network access. Real mode
+has been run end to end against the team's OCI tenancy with
+`scripts/check_oci.py` (see Testing below): Document Understanding OCR,
+classify, extract, and Chinese explanations, with no mock fallback. Run it
+again with your own credentials to confirm each call works in your account.
 
 ### Proving it, not just claiming it
 
@@ -226,7 +226,7 @@ app/
   db.py         SQLite engine/session (DATABASE_URL-configurable)
   number_guard.py / oci_genai.py   shared helpers used across the GenAI call sites
   main.py       FastAPI app, CORS, router wiring
-tests/          97 tests: rules engine (A-J), document pipeline, explain,
+tests/          250+ tests: rules engine (A-J), document pipeline, explain,
                 keep/protect, benefits endpoint, sign-in + applications
 demo/           M7 -- fixtures, seed script, full persona walkthrough script
 frontend/       M6 -- React + Vite UI: language, sign-in, letters, benefits,
@@ -291,7 +291,7 @@ Never commit `.env` or `.env.local` — both are gitignored.
 ## Running the tests
 
 ```bash
-python3 -m pytest -q          # 113 tests: no servers or network needed; real-OCI parsing is tested with fake SDK responses
+python3 -m pytest -q          # 250+ tests: no servers or network needed; real-OCI parsing is tested with fake SDK responses
 cd frontend && npm run build && npm run lint
 ```
 
