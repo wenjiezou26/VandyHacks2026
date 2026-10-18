@@ -85,11 +85,12 @@ def merge_fields_into_profile(
             profile.set_provenance("married", letter_id)
             updated.append("married")
 
-        # The notice lists which programs this case already covers -- if
-        # Medicaid isn't one of them, that answers "on Medicaid" (= no).
-        programs = fields.get("programs_on_case")
-        if programs is not None:
-            profile.on_medicaid = "medicaid" in {p.lower() for p in programs}
+        # The notice lists which programs this case covers. Medicaid listed
+        # means on Medicaid; NOT listed proves nothing (Medicaid is often a
+        # separate case), so that isn't taken as "no".
+        programs = fields.get("programs_on_case") or []
+        if "medicaid" in {p.lower() for p in programs}:
+            profile.on_medicaid = True
             profile.set_provenance("on_medicaid", letter_id)
             updated.append("on_medicaid")
 

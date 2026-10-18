@@ -4,3 +4,8 @@ export function formatMoney(value) {
     maximumFractionDigits: 2,
   });
 }
+
+// A value from a benefit's "numbers used" table: all of them are dollars.
+export function formatNumberUsed(value) {
+  return typeof value === "number" ? `$${formatMoney(value)}` : String(value);
+}

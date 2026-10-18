@@ -4,15 +4,15 @@ import CameraIcon from "../components/CameraIcon";
 import ErrorBox from "../components/ErrorBox";
 import IconBadge from "../components/IconBadge";
 import Layout from "../components/Layout";
+import MissingInfoQuestions from "../components/MissingInfoQuestions";
 import { SampleNote } from "../components/SampleBadge";
 import TracePanel from "../components/TracePanel";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
 import { useScan } from "../context/useScan";
-import { STATUS_KEY, confidenceLabel, numberLabel, t } from "../strings";
-import { formatMoney } from "../format";
-import { fetchBenefits } from "../api";
-import { useLoad } from "../hooks/useLoad";
+import { STATUS_KEY, confidenceLabel, numberLabel, statusLabel, t } from "../strings";
+import { formatMoney, formatNumberUsed } from "../format";
+import { useBenefits } from "../hooks/useBenefits";
 import { benefitTone } from "../benefitTone";
 import { speechLang } from "../speech";
 
@@ -31,7 +31,7 @@ export default function BenefitsFound() {
   const { language } = useLanguage();
   const { token } = useAuth();
   const { startScan } = useScan();
-  const { loading, data, error, reload } = useLoad(() => fetchBenefits(token, language || "en"), [token, language]);
+  const { loading, refreshing, data, error, reload } = useBenefits(token, language);
   const benefits = data?.results || [];
   const trace = data?.trace || [];
 
@@ -46,14 +46,30 @@ export default function BenefitsFound() {
   const relevant = benefits.filter((b) => POSITIVE.has(b.status));
   const needInfo = benefits.filter((b) => b.status === "missing_info");
   const notNow = benefits.filter((b) => !POSITIVE.has(b.status) && b.status !== "missing_info");
+  const anyPreliminary = benefits.some((b) => b.preliminary);
+  const nothingYet = !loading && Boolean(data) && relevant.length === 0 && notNow.length === 0;
 
   return (
     <Layout title={t(language, "benefitsFoundTitle")} backTo="/home">
       {loading && <p className="spinner-wrap">{t(language, "loading")}</p>}
-      {error && <ErrorBox title={t(language, "errLoadBenefits")} error={error} onRetry={reload} />}
+      {error && (
+        <ErrorBox
+          title={t(language, error.timeout ? "errBenefitsTimeout" : "errLoadBenefits")}
+          error={error}
+          onRetry={reload}
+        />
+      )}
+      {data && refreshing && !loading && (
+        <p className="muted-line" role="status">
+          {t(language, "updatingResults")}
+        </p>
+      )}
       {data?.uses_sample_data && <SampleNote textKey="sampleBenefitsNote" />}
 
-      {!loading && relevant.length === 0 && notNow.length === 0 && needInfo.length > 0 && (
+      {/* Nothing known yet (no letter scanned): one scan prompt, not a
+          wall of questions. Once anything is known, show what can be
+          said now, then the one question that could change it most. */}
+      {nothingYet && (
         <div className="section">
           <div className="card" style={{ textAlign: "center" }}>
             <p>{t(language, "scanPrompt")}</p>
@@ -64,35 +80,22 @@ export default function BenefitsFound() {
         </div>
       )}
 
-      {!loading && needInfo.length > 0 && (relevant.length > 0 || notNow.length > 0) && (
-        <div className="section">
-          <h3>{t(language, "missingInfoTitle")}</h3>
-          <div className="ios-list">
-            {needInfo.map((b) => (
-              <details key={b.program} className="nav-row-details">
-                <summary className="nav-row">
-                  <IconBadge kind={b.program} size={32} />
-                  <span style={{ flex: 1 }}>{b.program}</span>
-                  <span className="status-text missing_info">{t(language, STATUS_KEY[b.status])}</span>
-                </summary>
-                <div className="nav-row-details-body">
-                  <p className="review-source">{b.rule_applied}</p>
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
-      )}
+      {data && anyPreliminary && <p className="preliminary-note">{t(language, "preliminaryIntro")}</p>}
 
       {!loading && relevant.length > 0 && (
         <div className="section">
-          <h3>{t(language, "likelyBenefitsLabel")}</h3>
+          <h3>{t(language, "resultsNowTitle")}</h3>
           {relevant.map((b) => (
             <div className="benefit-card2" key={b.program} style={{ marginBottom: 16 }}>
               <div className={`benefit-band tone-${benefitTone(b.program)}`}>
                 <IconBadge kind={b.program} size={40} />
                 <h2>{b.program}</h2>
-                <span className={`badge ${b.status}`}>{t(language, STATUS_KEY[b.status])}</span>
+                <span className="benefit-badges">
+                  <span className={`badge ${b.status}`}>{t(language, STATUS_KEY[b.status])}</span>
+                  <span className={`badge ${b.preliminary ? "preliminary" : "no-ai"}`}>
+                    {t(language, b.preliminary ? "preliminaryTag" : "confirmedTag")}
+                  </span>
+                </span>
               </div>
 
               <div className="benefit-body">
@@ -142,7 +145,7 @@ export default function BenefitsFound() {
                       {Object.entries(b.numbers_used).map(([key, value]) => (
                         <tr key={key}>
                           <td>{numberLabel(language, key)}</td>
-                          <td>{String(value)}</td>
+                          <td>{formatNumberUsed(value)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -157,22 +160,51 @@ export default function BenefitsFound() {
         </div>
       )}
 
+      {data && !nothingYet && (
+        <MissingInfoQuestions
+          key={(data.questions || []).join(",")}
+          questions={data.questions}
+          questionPrograms={data.question_programs}
+          onAnswered={reload}
+        />
+      )}
+
+      {!loading && !nothingYet && needInfo.length > 0 && (
+        <div className="section">
+          <h3>{t(language, "missingInfoTitle")}</h3>
+          <div className="ios-list">
+            {needInfo.map((b) => (
+              <div key={b.program} className="nav-row-details">
+                <div className="nav-row">
+                  <IconBadge kind={b.program} size={32} />
+                  <span style={{ flex: 1 }}>{b.program}</span>
+                  <span className="status-text missing_info">{statusLabel(language, b)}</span>
+                </div>
+                <div className="nav-row-details-body">
+                  <p style={{ margin: 0 }}>{b.explanation}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!loading && notNow.length > 0 && (
         <div className="section">
           <h3>{t(language, "notNowLabel")}</h3>
           <div className="ios-list">
             {notNow.map((b) => (
-              <details key={b.program} className="nav-row-details">
-                <summary className="nav-row">
+              <div key={b.program} className="nav-row-details">
+                <div className="nav-row">
                   <IconBadge kind={b.program} size={32} />
                   <span style={{ flex: 1 }}>{b.program}</span>
-                  <span className="status-text not_now">{t(language, STATUS_KEY[b.status])}</span>
-                </summary>
-                <div className="nav-row-details-body">
-                  <p>{b.explanation}</p>
-                  <p className="review-source">{b.rule_applied}</p>
+                  <span className="status-text not_now">{statusLabel(language, b)}</span>
                 </div>
-              </details>
+                <div className="nav-row-details-body">
+                  <p style={{ marginTop: 0 }}>{b.explanation}</p>
+                  {!b.preliminary && <p className="review-source">{b.rule_applied}</p>}
+                </div>
+              </div>
             ))}
           </div>
         </div>

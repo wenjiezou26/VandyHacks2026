@@ -16,6 +16,7 @@ from app.apply.normalize import FieldValueError, normalize
 from app.i18n import document_name_zh, is_zh
 from app.keep.reminders import create_reminder, to_reminder_out
 from app.models import LetterRecord, ProfileRecord, Reminder
+from app.number_guard import format_dollar_amounts
 from app.privacy import EDITABLE_FIELDS, IDENTIFIER_FIELDS, describe_failure, minimize, transient
 from app.protect.bill_check import check_qmb_bill
 from app.protect.oci_client import draft_dispute_letter
@@ -211,6 +212,14 @@ def _apply_corrections(letter_type: str, extracted: dict, submitted: dict, save_
         try:
             if kind == "list":
                 value = _normalize_list(raw)
+            elif kind == "people":
+                # Edited as one name per line; who's in the household is
+                # what matters (e.g. one person = lives alone).
+                if isinstance(raw, list):
+                    raw = [p.get("name", "") if isinstance(p, dict) else p for p in raw]
+                names = _normalize_list(raw)
+                known = {m.get("name"): m for m in extracted.get(key) or [] if isinstance(m, dict)}
+                value = [known.get(name, {"name": name}) for name in names]
             elif kind == "bool":
                 if not isinstance(raw, bool):
                     raise FieldValueError("Please answer yes or no.", "请回答“是”或“不是”。")
@@ -358,6 +367,8 @@ def get_letter(session: Session, user_id: str, letter_id: int, language: str) ->
     if not explanation or record.explanation_language != language:
         # Saved in another language (or saved before explanations were kept).
         explanation = oci_client.explain_letter(letter_type, fields, language)
+    # Explanations saved before amounts were formatted said "$40000.0".
+    explanation = format_dollar_amounts(explanation)
 
     reminder = session.exec(select(Reminder).where(Reminder.letter_id == record.id)).first()
     bill_check = None

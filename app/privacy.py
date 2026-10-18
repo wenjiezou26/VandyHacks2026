@@ -41,7 +41,8 @@ IDENTIFIER_FIELDS: dict[str, list[str]] = {
 }
 
 # Facts the user can correct before saving, and how each is checked
-# (kinds from app.apply.normalize, plus "bool" and "list").
+# (kinds from app.apply.normalize, plus "bool", "list" and "people" --
+# a household list edited as one name per line).
 EDITABLE_FIELDS: dict[str, dict[str, str]] = {
     "ssa_benefit_letter": {
         "date_of_birth": "date",
@@ -51,8 +52,17 @@ EDITABLE_FIELDS: dict[str, dict[str, str]] = {
         "effective_date": "date",
         "recipient_name": "text",
         "recipient_address": "text",
+        "receives_ssi": "bool",
     },
-    "hra_renewal_notice": {"program": "text", "deadline": "date", "required_documents": "list", "household_size": "count"},
+    "hra_renewal_notice": {
+        "program": "text",
+        "deadline": "date",
+        "required_documents": "list",
+        "household_size": "count",
+        "household_members": "people",
+        "programs_on_case": "list",
+        "household_has_earned_income": "bool",
+    },
     "bank_statement": {"ending_balance": "money", "monthly_rent": "money"},
     "medical_bill": {"provider": "text", "is_medicare_claim": "bool"},
     "pay_stub": {"gross_pay": "money", "pay_period": "text"},

@@ -1586,3 +1586,71 @@ a.reminder-item {
   background: var(--color-surface);
   border-top: 1px solid var(--color-separator);
 }
+
+/* Preliminary estimates: visibly different from results based only on
+   confirmed facts. */
+.badge.preliminary {
+  background: transparent;
+  color: var(--color-warn-text);
+  border: 1.5px dashed currentColor;
+}
+
+.benefit-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.preliminary-note {
+  border-left: 4px solid var(--color-warn-text);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.question-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--color-separator);
+  padding-top: 10px;
+}
+
+.question-footer .review-source {
+  margin: 0;
+}
+
+.question-footer .link-button {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* The benefits question card (one question at a time). */
+.missing-info-card h2 {
+  margin-top: 0;
+}
+
+.question-row {
+  padding: 14px 0;
+  border-top: 1px solid var(--color-separator);
+}
+
+.question-form {
+  display: flex;
+  gap: 10px;
+}
+
+.question-form .big-button {
+  width: auto;
+  flex: 1;
+  margin: 0;
+}
+
+.question-form .text-input {
+  flex: 2;
+}

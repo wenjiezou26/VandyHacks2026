@@ -13,7 +13,7 @@ from sqlmodel import Session
 from app.apply.normalize import normalize
 from app.explain import ExplainedProgramResult, explain_results
 from app.models import LetterRecord, ProfileRecord
-from app.rules.engine import Profile, evaluate
+from app.rules.engine import Profile, Status, evaluate
 from app.trace import Trace, mock_suffix, trace_to_out, TraceStepOut
 
 
@@ -69,18 +69,18 @@ def profile_record_to_profile(record: ProfileRecord) -> Profile:
     )
 
 
-# A result only lists a fact in missing_fields when the rules engine
-# couldn't decide without it -- i.e. answering it would change that
-# program's status from missing_info to a real decision. So the set of
-# facts across all results already satisfies "missing AND would change a
-# result" by construction; this just dedupes, orders, and caps it so the
-# UI never has to ask more than 2 things at once.
-MAX_QUESTIONS = 2
-
-
-def needed_questions(results: list) -> list[str]:
-    wanted = {f for r in results for f in r.missing_fields}
-    return [f for f in PROFILE_FACTS if f in wanted][:MAX_QUESTIONS]
+def rank_questions(results: list) -> tuple[list[str], dict[str, list[str]]]:
+    """Facts that could change at least one result (the engine only lists a
+    fact when it does), most useful first: facts without which there's no
+    estimate at all, then those affecting the most programs."""
+    affects: dict[str, list[str]] = {}
+    for r in results:
+        for f in r.missing_fields:
+            affects.setdefault(f, []).append(r.program)
+    blocking = {f for r in results if r.status == Status.MISSING_INFO for f in r.missing_fields}
+    order = {f: i for i, f in enumerate(PROFILE_FACTS)}
+    ranked = sorted(affects, key=lambda f: (f not in blocking, -len(affects[f]), order.get(f, 99)))
+    return ranked, affects
 
 
 def uses_sample_data(session: Session, record: ProfileRecord) -> bool:
@@ -101,6 +101,8 @@ class BenefitsResult:
     trace: list[TraceStepOut]
     # Facts to ask for, in order, so "More information needed" can resolve.
     questions: list[str] = field(default_factory=list)
+    # question -> programs whose result it could change
+    question_programs: dict = field(default_factory=dict)
     # True when any number behind these results came from sample letters.
     uses_sample_data: bool = False
 
@@ -118,10 +120,12 @@ def get_benefits(session: Session, user_id: str, language: str) -> BenefitsResul
     with trace.step("Explained each result", f"OCI Generative AI{mock_suffix()}"):
         explained = explain_results(results, profile, language)
 
+    questions, question_programs = rank_questions(results)
     return BenefitsResult(
         results=explained,
         trace=trace_to_out(trace),
-        questions=needed_questions(results),
+        questions=questions,
+        question_programs=question_programs,
         uses_sample_data=uses_sample_data(session, record),
     )
 

@@ -9,8 +9,9 @@ import { SampleNote } from "../components/SampleBadge";
 import TracePanel from "../components/TracePanel";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
-import { STATUS_KEY, extractedFieldLabel, letterTypeLabel, t } from "../strings";
+import { extractedFieldLabel, letterTypeLabel, statusLabel, t } from "../strings";
 import { fetchBenefits, fetchLetter } from "../api";
+import { cachedBenefits } from "../benefitsCache";
 import { speechLang } from "../speech";
 import { useScan } from "../context/useScan";
 import { formatField } from "../letterFields";
@@ -47,7 +48,10 @@ export default function LetterResult() {
   const result = usePassed ? passed : loaded.data;
 
   const benefits = useLoad(
-    () => (result ? fetchBenefits(token, language || "en") : Promise.resolve(null)),
+    () =>
+      result
+        ? cachedBenefits(`${token}|${language || "en"}`, () => fetchBenefits(token, language || "en"))
+        : Promise.resolve(null),
     [token, language, Boolean(result)],
   );
   const likely = (benefits.data?.results || []).filter((b) => b.status === "likely" || b.status === "possible");
@@ -180,7 +184,7 @@ export default function LetterResult() {
               <div key={b.program} className="reminder-item">
                 <IconBadge kind={b.program} size={36} />
                 <span style={{ flex: 1, fontWeight: 700 }}>{b.program}</span>
-                <span className={`status-text ${b.status}`}>{t(language, STATUS_KEY[b.status])}</span>
+                <span className={`status-text ${b.status}`}>{statusLabel(language, b)}</span>
               </div>
             ))}
           </div>

@@ -5,6 +5,7 @@ nothing here can change status, numbers_used, or rule_applied.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
 from app.rules.engine import Profile, ProgramResult
@@ -31,15 +32,21 @@ class ExplainedProgramResult:
     # language (Chinese for "zh"); the official English rule is always here
     # too, for the bilingual caseworker card.
     rule_applied_en: str = ""
+    # A preliminary estimate holds only if `assumptions` (conditions, e.g.
+    # "no work income") are true; not a decision.
+    preliminary: bool = False
+    assumptions: list[str] = field(default_factory=list)
 
 
 def explain_results(
     results: list[ProgramResult], profile: Profile, language: str
 ) -> list[ExplainedProgramResult]:
     zh = language.lower() in ("zh", "chinese")
+    # The AI calls are independent and slow (seconds each): run them together.
+    with ThreadPoolExecutor(max_workers=max(1, len(results))) as pool:
+        explanations = list(pool.map(lambda r: oci_client.explain_program_result(r, language), results))
     explained: list[ExplainedProgramResult] = []
-    for result in results:
-        explanation = oci_client.explain_program_result(result, language)
+    for result, explanation in zip(results, explanations):
         explained.append(
             ExplainedProgramResult(
                 program=result.program,
@@ -55,6 +62,8 @@ def explain_results(
                 explanation=explanation,
                 myth_busting_lines=myth_busting_lines(result, profile, language),
                 rule_applied_en=result.rule_applied,
+                preliminary=result.preliminary,
+                assumptions=list(result.assumptions),
             )
         )
     return explained

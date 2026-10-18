@@ -1,3 +1,5 @@
+import { invalidateBenefits } from "./benefitsCache";
+
 // Same-origin /api by default (proxied by Vite to the backend; see
 // vite.config.js). Set VITE_API_BASE_URL to call a backend directly.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
@@ -46,12 +48,21 @@ export function serverDetail(error, language) {
   return language === "en" ? error.message : "";
 }
 
-function jsonRequest(method, path, body, headers = {}) {
+function jsonRequest(method, path, body, headers = {}, signal) {
   return fetch(`${API_BASE}${path}`, {
     method,
     headers: { "Content-Type": "application/json", ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   }).then(handleResponse);
+}
+
+// Saving something that can change the benefits check: drop the shared copy.
+function changesBenefits(promise) {
+  return promise.then((result) => {
+    invalidateBenefits();
+    return result;
+  });
 }
 
 function bearer(token) {
@@ -75,11 +86,13 @@ export async function readLetter({ file, name, language, token, signal }) {
 }
 
 export function confirmLetter(token, { draftToken, facts, saveIdentifiers, language }) {
-  return jsonRequest(
-    "POST",
-    "/letters/confirm",
-    { draft_token: draftToken, facts, save_identifiers: saveIdentifiers, language },
-    bearer(token),
+  return changesBenefits(
+    jsonRequest(
+      "POST",
+      "/letters/confirm",
+      { draft_token: draftToken, facts, save_identifiers: saveIdentifiers, language },
+      bearer(token),
+    ),
   );
 }
 
@@ -88,7 +101,7 @@ export function fetchPrivacyInfo() {
 }
 
 export function deleteMyData(token) {
-  return jsonRequest("POST", "/me/delete-data", { confirm: true }, bearer(token));
+  return changesBenefits(jsonRequest("POST", "/me/delete-data", { confirm: true }, bearer(token)));
 }
 
 export function fetchLetter(token, letterId, language) {
@@ -98,6 +111,10 @@ export function fetchLetter(token, letterId, language) {
     undefined,
     bearer(token),
   );
+}
+
+export function answerQuestion(token, key, value) {
+  return changesBenefits(jsonRequest("POST", "/profile/answers", { key, value }, bearer(token)));
 }
 
 export function fetchCurrentApplication(token, program = "MSP") {
@@ -112,8 +129,32 @@ export function fetchReminders(token) {
   return jsonRequest("GET", "/reminders", undefined, bearer(token));
 }
 
-export function fetchBenefits(token, language) {
-  return jsonRequest("GET", `/benefits?language=${encodeURIComponent(language)}`, undefined, bearer(token));
+// Explaining each program can take a while with live AI, but never forever:
+// give up after BENEFITS_TIMEOUT_MS with an error the screen can retry.
+const BENEFITS_TIMEOUT_MS = 45000;
+
+export async function fetchBenefits(token, language) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BENEFITS_TIMEOUT_MS);
+  try {
+    return await jsonRequest(
+      "GET",
+      `/benefits?language=${encodeURIComponent(language)}`,
+      undefined,
+      bearer(token),
+      controller.signal,
+    );
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeout = new Error("Timed out");
+      timeout.timeout = true;
+      timeout.retryable = true;
+      throw timeout;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function fetchMspChecklist(token) {
@@ -125,7 +166,7 @@ export function fetchOnQmb(token) {
 }
 
 export function setOnQmb(token, onQmb) {
-  return jsonRequest("POST", `/profile/on-qmb?on_qmb=${onQmb}`, undefined, bearer(token));
+  return changesBenefits(jsonRequest("POST", `/profile/on-qmb?on_qmb=${onQmb}`, undefined, bearer(token)));
 }
 
 // --- sign-in ---------------------------------------------------------------
@@ -139,6 +180,7 @@ export function verifyCode(phone, code) {
 }
 
 export function signOutRequest(token) {
+  invalidateBenefits();
   return jsonRequest("POST", "/auth/sign-out", undefined, bearer(token));
 }
 
@@ -149,7 +191,10 @@ export function startApplication(token, program = "MSP") {
 }
 
 export function answerField(token, applicationId, key, value) {
-  return jsonRequest("PUT", `/applications/${applicationId}/fields/${key}`, { value }, bearer(token));
+  // Application answers (age, marriage, household...) update the profile too.
+  return changesBenefits(
+    jsonRequest("PUT", `/applications/${applicationId}/fields/${key}`, { value }, bearer(token)),
+  );
 }
 
 export async function addDocument(token, applicationId, key, file) {

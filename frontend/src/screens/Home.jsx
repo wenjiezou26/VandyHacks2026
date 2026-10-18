@@ -7,10 +7,11 @@ import IconBadge from "../components/IconBadge";
 import { SampleBadge, SampleNote } from "../components/SampleBadge";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
-import { STATUS_KEY, letterTypeLabel, t } from "../strings";
-import { fetchBenefits, fetchLetters, fetchOnQmb, fetchReminders, setOnQmb } from "../api";
+import { letterTypeLabel, statusLabel, t } from "../strings";
+import { fetchLetters, fetchOnQmb, fetchReminders, setOnQmb } from "../api";
 import { benefitTone } from "../benefitTone";
 import { useScan } from "../context/useScan";
+import { useBenefits } from "../hooks/useBenefits";
 import { useLoad } from "../hooks/useLoad";
 
 const CATEGORY_TYPES = [
@@ -41,7 +42,7 @@ export default function Home() {
 
   const letters = useLoad(() => fetchLetters(token), [token]);
   const reminders = useLoad(() => fetchReminders(token), [token]);
-  const benefits = useLoad(() => fetchBenefits(token, language || "en"), [token, language]);
+  const benefits = useBenefits(token, language);
 
   useEffect(() => {
     fetchOnQmb(token)
@@ -128,7 +129,11 @@ export default function Home() {
         </div>
         {benefits.loading && <p className="muted-line">{t(language, "loading")}</p>}
         {benefits.error && (
-          <ErrorBox title={t(language, "errLoadBenefits")} error={benefits.error} onRetry={benefits.reload} />
+          <ErrorBox
+            title={t(language, benefits.error.timeout ? "errBenefitsTimeout" : "errLoadBenefits")}
+            error={benefits.error}
+            onRetry={benefits.reload}
+          />
         )}
         {benefits.data && (
           <>
@@ -139,7 +144,7 @@ export default function Home() {
                   <Link key={b.program} to="/benefits" className={`benefit-tile tone-${benefitTone(b.program)}`}>
                     <div>
                       <div className="benefit-tile-title">{b.program}</div>
-                      <div className="benefit-tile-sub">{t(language, STATUS_KEY[b.status])}</div>
+                      <div className="benefit-tile-sub">{statusLabel(language, b)}</div>
                     </div>
                     <IconBadge kind={b.program} size={28} />
                   </Link>

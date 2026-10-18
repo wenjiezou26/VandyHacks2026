@@ -65,8 +65,7 @@ def test_find_zero_questions_after_ssa_bank_and_hra_letters():
     """The core FIND demo flow: upload the SSA letter, bank statement, and
     HRA notice -- no manual answers at all -- and needed_questions() is
     empty. The HRA notice's single-person household_members list answers
-    "married" (lives alone), its programs_on_case answers "on Medicaid"
-    (not listed), and its "no one has earned income" statement answers
+    "married" (lives alone), and its "no one has earned income" statement answers
     earned_income_monthly -- all without asking."""
     headers = auth_headers("meiling_zero_q")
     _upload("01_ssa_benefit_letter.png", headers)

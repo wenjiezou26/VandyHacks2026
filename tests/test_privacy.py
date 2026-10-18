@@ -379,3 +379,19 @@ def test_pay_stub_keeps_pay_but_not_employer_or_pay_date():
     assert draft["letter_type"] == "pay_stub"
     saved = _confirm(draft).json()
     assert set(saved["extracted_fields"]) == {"gross_pay", "pay_period"}
+
+
+def test_facts_derived_from_the_hra_notice_can_be_corrected():
+    draft = _read("03_hra_snap_recert_notice.png").json()
+    assert draft["editable"]["household_members"] == "people"
+    assert len(draft["facts"]["household_members"]) == 1
+    facts = dict(draft["facts"], household_members="Mei-ling Chen\nWei Chen", household_has_earned_income=True)
+    assert _confirm(draft, facts=facts).status_code == 200
+    with Session(engine) as session:
+        profile = session.get(ProfileRecord, ALICE)
+        # Two people: "lives alone" is no longer inferred, and work income
+        # is left unknown rather than taken as $0.
+        assert not profile.is_known("married")
+        assert not profile.is_known("earned_income_monthly")
+        letter = session.exec(select(LetterRecord).where(LetterRecord.user_id == ALICE)).one()
+        assert "household_members" not in letter.extracted_fields  # used once, never saved

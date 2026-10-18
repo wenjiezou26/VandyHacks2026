@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
 import BigButton from "../components/BigButton";
+import ErrorBox from "../components/ErrorBox";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/useAuth";
 import { useLanguage } from "../context/useLanguage";
-import { STATUS_KEY, UI_STRINGS, numberLabel, t } from "../strings";
-import { fetchBenefits } from "../api";
+import { UI_STRINGS, numberLabel, statusLabel, t } from "../strings";
+import { formatNumberUsed } from "../format";
+import { useBenefits } from "../hooks/useBenefits";
 
 export default function CaseworkerCard() {
   const { language } = useLanguage();
   const { token } = useAuth();
-  const [benefits, setBenefits] = useState([]);
-
-  useEffect(() => {
-    fetchBenefits(token, language || "en")
-      .then((data) => setBenefits(data.results))
-      .catch(() => {});
-  }, [token, language]);
+  const loaded = useBenefits(token, language);
+  const benefits = loaded.data?.results || [];
 
   return (
     <Layout backTo="/benefits">
@@ -26,11 +22,19 @@ export default function CaseworkerCard() {
       <h1>
         {UI_STRINGS.en.caseworkerCardTitle} / {t(language, "caseworkerCardTitle")}
       </h1>
+      {loaded.loading && <p className="spinner-wrap">{t(language, "loading")}</p>}
+      {loaded.error && (
+        <ErrorBox
+          title={t(language, loaded.error.timeout ? "errBenefitsTimeout" : "errLoadBenefits")}
+          error={loaded.error}
+          onRetry={loaded.reload}
+        />
+      )}
 
       {benefits.map((b) => (
         <div key={b.program} className="card" style={{ marginBottom: 12 }}>
           <h2>
-            {b.program} &mdash; {UI_STRINGS.en[STATUS_KEY[b.status]]} / {t(language, STATUS_KEY[b.status])}
+            {b.program} &mdash; {statusLabel("en", b)} / {statusLabel(language, b)}
           </h2>
           <p>
             <em>EN:</em> {b.rule_applied_en}
@@ -48,7 +52,7 @@ export default function CaseworkerCard() {
                     {numberLabel("en", key)}
                     {language && language !== "en" && ` / ${numberLabel(language, key)}`}
                   </td>
-                  <td>{String(value)}</td>
+                  <td>{formatNumberUsed(value)}</td>
                 </tr>
               ))}
             </tbody>

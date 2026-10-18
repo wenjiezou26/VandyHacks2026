@@ -35,15 +35,19 @@ function FactInput({ name, kind, value, onChange, language }) {
       </div>
     );
   }
-  if (kind === "list") {
+  if (kind === "list" || kind === "people") {
     // One item per line -- delete a line to remove a wrongly read item.
+    // People are edited by name (the server keeps what it read for each).
+    const lines = Array.isArray(value)
+      ? value.map((item) => (item && typeof item === "object" ? item.name ?? "" : item))
+      : null;
     return (
       <label className="fact-row">
         <span className="fact-label">{label}</span>
         <textarea
           className="text-input"
-          rows={Math.max(3, (Array.isArray(value) ? value.length : 1) + 1)}
-          value={Array.isArray(value) ? value.join("\n") : value ?? ""}
+          rows={Math.max(3, (lines ? lines.length : 1) + 1)}
+          value={lines ? lines.join("\n") : value ?? ""}
           onChange={(e) => onChange(e.target.value)}
         />
       </label>

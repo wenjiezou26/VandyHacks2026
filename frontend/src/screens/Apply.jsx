@@ -100,7 +100,6 @@ export default function Apply() {
             {"\u{1F50A}"}
           </button>
         </h2>
-        {language !== "en" && <p style={{ color: "var(--color-muted)" }}>{current.question_en}</p>}
 
         {language === "zh" && (
           <div className="segmented" role="group">

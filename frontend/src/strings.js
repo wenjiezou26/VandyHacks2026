@@ -211,6 +211,20 @@ export const UI_STRINGS = {
     sampleLetterNote: "Sample data: this demo letter wasn't read from your photo.",
     sampleBenefitsNote: "Some numbers here come from sample (demo) letters, not your real documents.",
     missingInfoTitle: "More information needed",
+    missingInfoIntro: "Answer these so we can check your benefits. We never guess a missing number.",
+    missingInfoCount: "{n} questions could change your results",
+    missingInfoCta: "Answer questions",
+    pq_has_medicare: "Do you have Medicare?",
+    pq_ss_gross_monthly: "How much Social Security do you get each month, before deductions?",
+    pq_earned_income_monthly:
+      "How much do you earn from work each month? Enter 0 if none, or go back and take a photo of a pay stub instead.",
+    pq_married: "Are you married and living with your spouse?",
+    pq_ss_gross_monthly_spouse: "How much Social Security does your spouse get each month?",
+    pq_earned_income_monthly_spouse: "How much does your spouse earn from work each month? Enter 0 if none.",
+    pq_household_size: "How many people live in your home, including you?",
+    pq_other_household_income_monthly: "How much do the other people in your home earn in total each month? Enter 0 if none.",
+    pq_age: "How old are you?",
+    pq_savings: "How much do you have in savings and bank accounts in total?",
     extractedInfoTitle: "What we read from the letter",
     noApplicationTitle: "You haven't started an application",
     noApplicationBody: "LetterLens can fill in the Medicare Savings Program application (MSP + Extra Help) for you when your benefits check says you may qualify.",
@@ -295,6 +309,26 @@ export const UI_STRINGS = {
     ef_household_size: "People in household",
     ef_gross_pay: "Pay before deductions",
     ef_pay_period: "How often you're paid",
+    ef_receives_ssi: "Gets SSI (used once — not stored)",
+    ef_household_members: "People in the household (one per line — used once, not stored)",
+    ef_programs_on_case: "Programs on this case (used once — not stored)",
+    ef_household_has_earned_income: "Anyone in the household earns money from work (used once — not stored)",
+    preliminaryTag: "Preliminary",
+    confirmedTag: "Based on confirmed facts",
+    preliminaryIntro: "Preliminary estimates use the facts you've confirmed so far. They are not a decision — only the agency decides. Answering a question can change them.",
+    resultsNowTitle: "What we can tell now",
+    nextQuestionTitle: "One question that could change your results",
+    questionAffects: "Your answer could change: {programs}",
+    moreQuestions: "{n} more question(s) after this could also help.",
+    skipQuestion: "Skip for now",
+    updatingResults: "Updating your results…",
+    errBenefitsTimeout: "Checking your benefits is taking too long.",
+    packEmptyTitle: "No application pack yet",
+    packNotLikely: "From the facts you've confirmed, these don't look likely right now: {programs}. There is nothing to apply for yet.",
+    packNeedsAnswers: "We need a little more information before we can build your pack.",
+    packChangeHint: "If your income, savings or household changes, scan the new letter or update your answers and we'll check again.",
+    packPreliminaryNote: "This pack is based on a preliminary estimate. Answer the remaining questions on the Benefits page to confirm.",
+    scanLetter: "Scan a letter",
   },
   ko: {
     appName: "LetterLens",
@@ -779,6 +813,19 @@ export const UI_STRINGS = {
     sampleLetterNote: "示例数据：这封演示信件不是从您的照片中读取的。",
     sampleBenefitsNote: "这里有些数字来自示例（演示）信件，不是您的真实文件。",
     missingInfoTitle: "需要更多信息",
+    missingInfoIntro: "请回答这些问题，我们才能查看您的福利。我们不会猜测缺少的数字。",
+    missingInfoCount: "{n} 个问题可能改变您的结果",
+    missingInfoCta: "回答问题",
+    pq_has_medicare: "您有医疗保险 (Medicare) 吗？",
+    pq_ss_gross_monthly: "您每个月的社会安全福利（扣除前）是多少？",
+    pq_earned_income_monthly: "您每个月的工作收入是多少？没有请填 0，或返回拍一张工资单的照片。",
+    pq_married: "您是否已婚并且和配偶住在一起？",
+    pq_ss_gross_monthly_spouse: "您的配偶每个月领多少社会安全福利？",
+    pq_earned_income_monthly_spouse: "您的配偶每个月的工作收入是多少？没有请填 0。",
+    pq_household_size: "包括您自己，家里一共住几个人？",
+    pq_other_household_income_monthly: "家里其他人每个月一共收入多少？没有请填 0。",
+    pq_age: "您今年多少岁？",
+    pq_savings: "您的存款和银行账户一共有多少钱？",
     extractedInfoTitle: "我们从信中读取的内容",
     noApplicationTitle: "您还没有开始申请",
     noApplicationBody: "当福利检查显示您可能符合资格时，LetterLens 可以帮您填写医疗保险储蓄计划申请（MSP + Extra Help）。",
@@ -863,6 +910,26 @@ export const UI_STRINGS = {
     ef_household_size: "家庭人数",
     ef_gross_pay: "税前工资",
     ef_pay_period: "发薪周期",
+    ef_receives_ssi: "领取 SSI（只用一次——不保存）",
+    ef_household_members: "家庭成员（每行一位——只用一次，不保存）",
+    ef_programs_on_case: "本案包含的福利项目（只用一次——不保存）",
+    ef_household_has_earned_income: "家里有人有工作收入（只用一次——不保存）",
+    preliminaryTag: "初步估计",
+    confirmedTag: "根据已确认的信息",
+    preliminaryIntro: "初步估计只使用您到目前为止确认过的信息，不是正式决定——最终由政府机构决定。回答问题后结果可能会改变。",
+    resultsNowTitle: "目前可以判断的结果",
+    nextQuestionTitle: "一个可能改变结果的问题",
+    questionAffects: "您的回答可能会改变：{programs}",
+    moreQuestions: "之后还有 {n} 个问题也可能有帮助。",
+    skipQuestion: "先跳过",
+    updatingResults: "正在更新结果…",
+    errBenefitsTimeout: "查看福利的时间太长了。",
+    packEmptyTitle: "还没有申请材料清单",
+    packNotLikely: "根据您已确认的信息，以下项目目前看起来不太符合条件：{programs}。现在还没有需要申请的项目。",
+    packNeedsAnswers: "我们还需要一些信息，才能为您准备申请材料清单。",
+    packChangeHint: "如果您的收入、存款或家庭人数有变化，请扫描新的信件或更新您的回答，我们会重新检查。",
+    packPreliminaryNote: "这份清单基于初步估计。请在福利页面回答剩下的问题来确认。",
+    scanLetter: "扫描信件",
   },
   es: {
     appName: "LetterLens",
@@ -1447,6 +1514,13 @@ export const STATUS_KEY = {
   missing_info: "statusMissingInfo",
 };
 
+// A benefit's status, marked when it's a preliminary estimate that still
+// depends on facts we don't have (never shown as confirmed).
+export function statusLabel(language, benefit) {
+  const label = t(language, STATUS_KEY[benefit.status]);
+  return benefit.preliminary ? `${label} · ${t(language, "preliminaryTag")}` : label;
+}
+
 // Labels for values the backend sends as internal keys.
 export function numberLabel(language, key) {
   return UI_STRINGS.en[`num_${key}`] ? t(language, `num_${key}`) : key;
@@ -1468,7 +1542,41 @@ const DOC_TEXT_KEY = {
   id: "docText_id",
 };
 
+// Chinese for the documents an HRA notice asks for, and the notes it prints
+// after them ("Proof of rent (lease or rent receipt)"). Mirrors
+// app/i18n.py; anything not recognized is shown as written.
+const DOC_ZH = {
+  "proof of income": "收入证明",
+  "proof of residence": "居住证明",
+  "proof of address": "地址证明",
+  "proof of identity": "身份证明",
+  "proof of rent": "房租证明",
+  "proof of utility costs": "水电费证明",
+  "proof of utilities": "水电费证明",
+  "proof of medical expenses": "医疗费用证明",
+  "social security card": "社会安全卡",
+  "medicare card": "医疗保险卡",
+};
+const DOC_NOTE_ZH = {
+  "for example, social security benefit letter": "例如社会安全福利信",
+  "lease or rent receipt": "租约或房租收据",
+  "for example, electric bill": "例如电费账单",
+  "60+ household members may deduct these": "60岁以上的家庭成员可以扣除这些费用",
+};
+
+function documentTextZh(text) {
+  const match = text.trim().match(/^([^(]+?)\s*(?:\((.*)\))?$/);
+  const base = match && DOC_ZH[match[1].toLowerCase()];
+  if (!base) return null;
+  if (!match[2]) return base;
+  return `${base}（${DOC_NOTE_ZH[match[2].trim().toLowerCase()] ?? match[2].trim()}）`;
+}
+
 export function documentText(language, text) {
+  if (language === "zh") {
+    const zh = documentTextZh(text);
+    if (zh) return zh;
+  }
   const key = DOC_TEXT_KEY[text.trim().toLowerCase()];
   return key ? t(language, key) : text;
 }

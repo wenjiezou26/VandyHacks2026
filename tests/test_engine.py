@@ -221,3 +221,30 @@ def test_snap_lists_savings_only_when_the_asset_test_decided():
     asset_test = _by_program(evaluate(Profile(age=45, earned_income_monthly=2700, savings=10_000)), "SNAP")
     assert asset_test.numbers_used["savings"] == 10_000
     assert asset_test.numbers_used["asset_limit"] == 4500
+
+
+def test_preliminary_result_lists_the_open_facts_it_depends_on():
+    profile = Profile(
+        nyc_resident=True, age=70, ss_gross_monthly=1700, has_medicare=True,
+        unknown=frozenset({"earned_income_monthly", "married", "household_size", "savings",
+                           "ss_gross_monthly_spouse", "earned_income_monthly_spouse",
+                           "other_household_income_monthly"}),
+    )
+    msp = evaluate(profile)[0]
+    assert msp.program == "QMB" and msp.status == Status.LIKELY
+    assert msp.preliminary is True
+    assert msp.missing_fields == ["earned_income_monthly", "married"]
+
+
+def test_snap_net_test_counts_other_household_members_income():
+    profile = Profile(
+        nyc_resident=True, age=74, ss_gross_monthly=1700, has_medicare=True,
+        household_size=2, other_household_income_monthly=10_000,
+    )
+    snap = next(r for r in evaluate(profile) if r.program == "SNAP")
+    assert snap.status == Status.NOT_NOW
+
+
+def test_unknown_income_is_missing_info_not_a_guess():
+    profile = Profile(nyc_resident=True, age=70, has_medicare=True, unknown=frozenset({"ss_gross_monthly"}))
+    assert {r.status for r in evaluate(profile)} == {Status.MISSING_INFO}

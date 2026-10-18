@@ -10,11 +10,12 @@ app.number_guard before being returned.
 from __future__ import annotations
 
 import json
+import threading
 
-from app.number_guard import assert_numbers_preserved
+from app.number_guard import assert_numbers_preserved, format_dollar_amounts
 from app.oci_genai import genai_chat, language_name, plain_text
 from app.rules.engine import ProgramResult
-from app.trace import call_with_fallback
+from app.trace import call_with_fallback, is_mock_mode, was_fallback_used
 
 STATUS_PHRASES = {
     "likely": "you likely qualify for",
@@ -100,9 +101,66 @@ def _real_explain(result: ProgramResult, language: str) -> str:
     return output
 
 
+def _english_list(items: list[str]) -> str:
+    """"a", "a and b", "a, b, and c"."""
+    if len(items) <= 2:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
+def template_explanation(result: ProgramResult, language: str) -> str:
+    """Fixed wording for preliminary and missing-information results: the
+    stated conditions must never be paraphrased away, so no AI here."""
+    from app.rules.engine import CONDITION_LABELS, MISSING_FACT_LABELS
+
+    zh = language.lower() in ("zh", "chinese")
+    if _status_value(result) == "missing_info":
+        facts = [MISSING_FACT_LABELS[f][1 if zh else 0] for f in result.missing_fields]
+        if zh:
+            return f"还不能判断 {result.program}。需要先知道：" + "、".join(facts) + "。"
+        return f"We can't check {result.program} yet. We need to know " + _english_list(facts) + "."
+    conditions = [CONDITION_LABELS[f][1 if zh else 0] for f in result.assumptions]
+    if zh:
+        sentence = "初步估计：如果" + "，且".join(conditions) + f"，{STATUS_PHRASES_ZH.get(_status_value(result), '')} {result.program} 的条件。"
+        if result.monthly_value:
+            sentence += f"每月约 ${result.monthly_value:,.2f}。"
+        return sentence + "回答下面的问题来确认。"
+    sentence = "Preliminary estimate: if " + _english_list(conditions) + f", {STATUS_PHRASES.get(_status_value(result), 'the result for')} {result.program}."
+    if result.monthly_value:
+        sentence += f" That could be worth about ${result.monthly_value:,.2f} a month."
+    return sentence + " Answer the question below to confirm."
+
+
+# Same result + language -> same explanation, so repeat visits to Home,
+# Benefits and the application pack don't re-run the AI each time.
+_CACHE: dict[str, str] = {}
+_CACHE_LOCK = threading.Lock()
+_CACHE_MAX = 512
+
+
+def _cache_key(result: ProgramResult, language: str) -> str:
+    return json.dumps([_source_text(result), result.rule_applied_zh, language, is_mock_mode()], sort_keys=True)
+
+
 def explain_program_result(result: ProgramResult, language: str) -> str:
-    """OCI GenAI: plain-language explanation of one ProgramResult."""
-    return call_with_fallback(
-        lambda: _real_explain(result, language),
-        lambda: _mock_explain(result, language),
+    """Plain-language explanation of one ProgramResult: fixed wording for
+    preliminary / missing-info results, OCI GenAI (cached) otherwise."""
+    if result.preliminary or _status_value(result) == "missing_info":
+        return format_dollar_amounts(template_explanation(result, language))
+    key = _cache_key(result, language)
+    with _CACHE_LOCK:
+        if key in _CACHE:
+            return _CACHE[key]
+    text = format_dollar_amounts(
+        call_with_fallback(
+            lambda: _real_explain(result, language),
+            lambda: _mock_explain(result, language),
+        )
     )
+    if not was_fallback_used() or is_mock_mode():
+        # Don't cache a fallback from a failed live call -- retry it next time.
+        with _CACHE_LOCK:
+            if len(_CACHE) >= _CACHE_MAX:
+                _CACHE.clear()
+            _CACHE[key] = text
+    return text

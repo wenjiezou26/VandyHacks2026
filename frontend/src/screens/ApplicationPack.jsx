@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import BigButton from "../components/BigButton";
 import CameraIcon from "../components/CameraIcon";
 import ErrorBox from "../components/ErrorBox";
@@ -8,7 +7,9 @@ import { useLanguage } from "../context/useLanguage";
 import { useScan } from "../context/useScan";
 import { documentText, numberLabel, t } from "../strings";
 import { documentLabel } from "../applicationFields";
-import { fetchBenefits, fetchMspChecklist, fetchReminders } from "../api";
+import { fetchMspChecklist, fetchReminders } from "../api";
+import { formatNumberUsed } from "../format";
+import { useBenefits } from "../hooks/useBenefits";
 import { useLoad } from "../hooks/useLoad";
 
 const MSP_PROGRAMS = new Set(["QMB", "QI", "MSP"]);
@@ -86,22 +87,36 @@ export default function ApplicationPack() {
   const { language } = useLanguage();
   const { token } = useAuth();
   const reminders = useLoad(() => fetchReminders(token), [token]);
-  const benefits = useLoad(() => fetchBenefits(token, language || "en"), [token, language]);
+  const benefits = useBenefits(token, language);
+  const { startScan, scanning } = useScan();
   const mspChecklist = useLoad(() => fetchMspChecklist(token), [token]);
 
   const results = benefits.data?.results || [];
   const likelyPrograms = results.filter((b) => QUALIFIES.has(b.status));
-  const mspLikely = results.some((b) => MSP_PROGRAMS.has(b.program) && QUALIFIES.has(b.status));
+  const mspResult = results.find((b) => MSP_PROGRAMS.has(b.program) && QUALIFIES.has(b.status));
+  const mspLikely = Boolean(mspResult);
   const snap = results.find((b) => b.program === "SNAP");
   const snapRenewal = (reminders.data || []).find((r) => r.program === "SNAP");
   const otherReminders = (reminders.data || []).filter((r) => r.program !== "SNAP");
   const loading = reminders.loading || benefits.loading || mspChecklist.loading;
+  const failed = benefits.error || reminders.error;
+  // Something to apply for or renew. SNAP alone waiting on answers isn't a
+  // pack -- that's the empty state below, which covers every program.
+  const snapQualifies = Boolean(snapRenewal) || (snap && QUALIFIES.has(snap.status));
+  const hasPack = mspLikely || snapQualifies || otherReminders.length > 0 || likelyPrograms.length > 0;
+  const notLikely = results.filter((b) => b.status === "not_now");
+  const waiting = results.filter((b) => b.status === "missing_info");
+  const needsAnswers = (benefits.data?.questions || []).length > 0;
 
   return (
     <Layout title={t(language, "applicationPackTitle")} backTo="/benefits">
       {loading && <p className="spinner-wrap">{t(language, "loading")}</p>}
       {benefits.error && (
-        <ErrorBox title={t(language, "errLoadBenefits")} error={benefits.error} onRetry={benefits.reload} />
+        <ErrorBox
+          title={t(language, benefits.error.timeout ? "errBenefitsTimeout" : "errLoadBenefits")}
+          error={benefits.error}
+          onRetry={benefits.reload}
+        />
       )}
       {reminders.error && (
         <ErrorBox title={t(language, "errLoadDeadlines")} error={reminders.error} onRetry={reminders.reload} />
@@ -117,6 +132,7 @@ export default function ApplicationPack() {
               onRetry={mspChecklist.reload}
             />
           )}
+          {mspResult.preliminary && <p className="preliminary-note">{t(language, "packPreliminaryNote")}</p>}
           {mspChecklist.data && (
             <div className="card">
               <Checklist
@@ -135,7 +151,7 @@ export default function ApplicationPack() {
         </section>
       )}
 
-      {!benefits.error && !reminders.error && <SnapSection snap={snap} renewal={snapRenewal} />}
+      {!failed && hasPack && <SnapSection snap={snap} renewal={snapRenewal} />}
 
       {otherReminders.length > 0 && (
         <section>
@@ -178,7 +194,7 @@ export default function ApplicationPack() {
                   {Object.entries(b.numbers_used).map(([key, value]) => (
                     <tr key={key}>
                       <td>{numberLabel(language, key)}</td>
-                      <td>{String(value)}</td>
+                      <td>{formatNumberUsed(value)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -188,11 +204,47 @@ export default function ApplicationPack() {
         </section>
       )}
 
-      {!loading && !mspLikely && !snap && !snapRenewal && otherReminders.length === 0 && (
-        <div className="card">
-          <p>{t(language, "snapNeedsInfo")}</p>
-          <Link to="/benefits">{t(language, "goToBenefits")}</Link>
-        </div>
+      {/* Nothing to apply for: say why, per program, and what to do next --
+          never just an empty page. */}
+      {!loading && !failed && benefits.data && !hasPack && (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>{t(language, "packEmptyTitle")}</h2>
+          {needsAnswers && <p>{t(language, "packNeedsAnswers")}</p>}
+          {waiting.length > 0 && (
+            <ul>
+              {waiting.map((b) => (
+                <li key={b.program}>
+                  <strong>{b.program}</strong>: {b.explanation}
+                </li>
+              ))}
+            </ul>
+          )}
+          {notLikely.length > 0 && (
+            <>
+              <p>
+                {t(language, "packNotLikely", {
+                  programs: notLikely.map((b) => b.program).join(language === "zh" ? "、" : ", "),
+                })}
+              </p>
+              <ul>
+                {notLikely.map((b) => (
+                  <li key={b.program}>
+                    <strong>{b.program}</strong>: {b.explanation}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className="review-source">{t(language, "packChangeHint")}</p>
+          {needsAnswers ? (
+            <BigButton to="/benefits#questions">{t(language, "missingInfoCta")}</BigButton>
+          ) : (
+            <BigButton to="/benefits">{t(language, "goToBenefits")}</BigButton>
+          )}
+          <BigButton variant="secondary" onClick={startScan} disabled={scanning}>
+            {t(language, "scanLetter")}
+          </BigButton>
+        </section>
       )}
     </Layout>
   );

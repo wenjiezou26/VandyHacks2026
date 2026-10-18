@@ -102,3 +102,27 @@ def test_number_guard_rejects_invented_numbers():
 
 def test_number_guard_allows_subset_of_source_numbers():
     assert_numbers_preserved("You get $1,700 a month.", "Gross: $1,700.00, Net: $1,497.10")
+
+
+def test_dollar_amounts_are_formatted_like_the_facts_table():
+    from app.number_guard import format_dollar_amounts
+
+    assert format_dollar_amounts("You have $40000.0 and $1700.0.") == "You have $40,000.00 and $1,700.00."
+    assert format_dollar_amounts("余额 40000.0 美元。") == "余额 $40,000.00。"
+    assert format_dollar_amounts("$1,700.00, $20 later") == "$1,700.00, $20.00 later"
+
+
+def test_hra_document_names_are_translated_with_their_notes():
+    from app.i18n import document_name_zh
+
+    assert document_name_zh("Proof of rent (lease or rent receipt)") == "房租证明（租约或房租收据）"
+    assert document_name_zh("Proof of identity") == "身份证明"
+    assert document_name_zh("Birth certificate") == "Birth certificate"  # unknown: left as written
+
+
+def test_missing_info_list_reads_as_a_sentence():
+    from app.explain.oci_client import template_explanation
+    from app.rules.engine import ProgramResult, Status
+
+    result = ProgramResult(program="MSP", status=Status.MISSING_INFO, missing_fields=["has_medicare", "ss_gross_monthly", "married"])
+    assert ", and whether you're married" in template_explanation(result, "en")

@@ -16,6 +16,19 @@ DOCUMENT_NAMES_ZH = {
     "social security card": "社会安全卡",
     "medicare card": "医疗保险卡",
     "bank statement": "银行对账单",
+    "proof of rent": "房租证明",
+    "proof of utility costs": "水电费证明",
+    "proof of utilities": "水电费证明",
+    "proof of medical expenses": "医疗费用证明",
+}
+
+# Notes HRA prints after a document name, e.g. "Proof of rent (lease or
+# rent receipt)".
+DOCUMENT_NOTES_ZH = {
+    "for example, social security benefit letter": "例如社会安全福利信",
+    "lease or rent receipt": "租约或房租收据",
+    "for example, electric bill": "例如电费账单",
+    "60+ household members may deduct these": "60岁以上的家庭成员可以扣除这些费用",
 }
 
 COST_SHARING_ZH = {
@@ -31,4 +44,17 @@ def is_zh(language: str) -> bool:
 
 
 def document_name_zh(name: str) -> str:
-    return DOCUMENT_NAMES_ZH.get(name.strip().lower(), name)
+    """Chinese for a document name as written on a letter; anything not
+    recognized is left as written rather than guessed."""
+    key = name.strip().lower()
+    if key in DOCUMENT_NAMES_ZH:
+        return DOCUMENT_NAMES_ZH[key]
+    base, _, note = key.partition("(")
+    base_zh = DOCUMENT_NAMES_ZH.get(base.strip())
+    if base_zh is None:
+        return name
+    note = note.rstrip(")").strip()
+    if not note:
+        return base_zh
+    note_zh = DOCUMENT_NOTES_ZH.get(note, name[name.index("(") + 1 :].rstrip(")").strip())
+    return f"{base_zh}（{note_zh}）"
