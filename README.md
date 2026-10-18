@@ -14,7 +14,8 @@ extracted facts to:
    the letters, asks only what's missing (by voice, in Mandarin or
    Cantonese), and the user reviews, signs, and says yes
 
-Demo persona: Chen Yu-lan (陈玉兰), 74, Flushing, Queens, Mandarin speaker.
+Demo persona: Mei-ling Chen (陈美玲), 74, Flushing, Queens, Mandarin speaker
+(the letters in `demo/fixtures/`, walked through in `demo/DEMO_SCRIPT.md`).
 
 ## Hard rules this architecture enforces
 
@@ -340,7 +341,8 @@ marked fake documents — `MOCK_MODE` dispatches canned OCR text by
 filename keyword, it never reads the pixels, so any renamed copy of these
 files will misclassify.
 
-Suggested order (persona: Chen Yu-lan, 74, Flushing, Queens):
+Suggested order (these older sample images are addressed to Chen Yu-lan;
+the main demo persona, Mei-ling Chen, uses `demo/fixtures/` instead):
 
 1. `ssa_benefit_letter_sample.jpg` -- gross $1,700/mo explained
 2. `bank_statement_sample.jpg` -- $40,000 savings (doesn't count for MSP)
